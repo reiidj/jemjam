@@ -1,15 +1,11 @@
-// 1. We import from YOUR new utility file instead of the base package
 import { createClient } from "@/utils/supabase/server";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import EventComposer from "@/components/features/EventComposer";
-import EventCardActions from "@/components/features/EventCardActions";
+import EventCard from "@/components/features/EventCard";
 
 export default async function EventsPage() {
-  // 2. We use 'await' because Next.js 15 handles cookies asynchronously
-  // No more messy environment variables needed here!
   const supabase = await createClient();
 
-  // 3. The data fetching remains exactly the same
   const { data: allEvents, error } = await supabase
     .from("events")
     .select("*")
@@ -49,38 +45,7 @@ export default async function EventsPage() {
               </p>
             ) : (
               upcomingEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="relative p-6 bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer"
-                >
-                  {/* edit/delete icons that appear on hover */}
-                  <EventCardActions event={event} />
-
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-primary font-serif block mb-2">
-                    {new Date(event.event_date).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                  <h3 className="font-serif text-2xl text-foreground mb-2 group-hover:text-primary transition-colors">
-                    {event.title}
-                  </h3>
-                  {event.location && (
-                    <div className="flex items-center gap-2 text-foreground/50 mb-4">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-xs font-serif">
-                        {event.location}
-                      </span>
-                    </div>
-                  )}
-                  {event.description && (
-                    <div
-                      className="prose prose-sm prose-stone font-serif text-foreground/70 line-clamp-3"
-                      dangerouslySetInnerHTML={{ __html: event.description }}
-                    />
-                  )}
-                </div>
+                <EventCard key={event.id} event={event} />
               ))
             )}
           </div>
@@ -93,25 +58,7 @@ export default async function EventsPage() {
           </h2>
           <div className="space-y-6 opacity-70">
             {pastEvents.map((event) => (
-              <div
-                key={event.id}
-                // ADD "group" RIGHT HERE 👇
-                className="relative group p-6 bg-secondary/5 border border-border/50"
-              >
-                {/* edit/delete icons that appear on hover */}
-                <EventCardActions event={event} />
-
-                <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif block mb-2">
-                  {new Date(event.event_date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </span>
-                <h3 className="font-serif text-xl text-foreground mb-2">
-                  {event.title}
-                </h3>
-              </div>
+              <EventCard key={event.id} event={event} isPast={true} />
             ))}
           </div>
         </div>

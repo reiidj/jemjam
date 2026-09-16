@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, X } from "lucide-react";
-import { updateCountdownSettings } from "@/lib/actions/settings";
 
 const MOCK_IMAGES = ["mock-1", "mock-2", "mock-3"];
 
 interface CountdownHeroProps {
-  targetDateString: string;
+  targetDateString: string | null;
   title: string;
 }
 
@@ -24,12 +22,13 @@ export default function CountdownHero({
   });
   const [cards, setCards] = useState(MOCK_IMAGES);
 
-  // UI States for editing
-  const [isEditing, setIsEditing] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-
   useEffect(() => {
-    // Parse the date string passed from the server into a usable timestamp
+    // If there is no upcoming event, keep everything at zero
+    if (!targetDateString) {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
+
     const targetDate = new Date(targetDateString).getTime();
 
     const interval = setInterval(() => {
@@ -46,7 +45,6 @@ export default function CountdownHero({
           seconds: Math.floor((difference % (1000 * 60)) / 1000),
         });
       } else {
-        // If the date has passed, show all zeros
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       }
     }, 1000);
@@ -63,86 +61,8 @@ export default function CountdownHero({
     });
   };
 
-  const handleUpdate = async (formData: FormData) => {
-    setIsPending(true);
-    await updateCountdownSettings(formData);
-    setIsEditing(false);
-    setIsPending(false);
-  };
-
-  // Convert the ISO string to a datetime-local format for the HTML input
-  const defaultDateValue = new Date(targetDateString)
-    .toISOString()
-    .slice(0, 16);
-
   return (
     <section className="relative flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto py-12 lg:py-20 px-6 lg:px-8 gap-12 lg:gap-16 bg-background">
-      {/* Small Edit Button in the top left */}
-      <button
-        onClick={() => setIsEditing(true)}
-        className="absolute top-4 left-6 lg:left-8 text-foreground/30 hover:text-primary transition-colors flex items-center gap-2"
-      >
-        <PenLine className="w-4 h-4" />
-        <span className="text-[10px] uppercase tracking-widest font-serif">
-          Edit Countdown
-        </span>
-      </button>
-
-      {/* Editing Modal/Overlay */}
-      {isEditing && (
-        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-6">
-          <form
-            action={handleUpdate}
-            className="bg-[#FFFDF9] border border-border p-8 md:p-12 shadow-2xl max-w-md w-full relative"
-          >
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="absolute top-4 right-4 text-foreground/50 hover:text-foreground"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h2 className="font-serif text-2xl text-foreground mb-6">
-              Update Destination
-            </h2>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif mb-2">
-                  Adventure Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  defaultValue={title}
-                  required
-                  className="w-full bg-transparent border-b border-border/50 pb-2 font-serif text-lg text-foreground focus:outline-none focus:border-primary transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif mb-2">
-                  Target Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  name="date"
-                  defaultValue={defaultDateValue}
-                  required
-                  className="w-full bg-transparent border-b border-border/50 pb-2 font-serif text-lg text-foreground focus:outline-none focus:border-primary transition-colors"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isPending}
-                className="w-full py-4 bg-background border border-primary text-primary hover:bg-primary hover:text-background transition-colors font-serif uppercase tracking-[0.2em] text-xs disabled:opacity-50"
-              >
-                {isPending ? "Updating..." : "Save Changes"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       <div className="flex-1 space-y-6 z-10 text-center lg:text-left pt-6 lg:pt-0">
         <span className="text-primary font-serif text-xs lg:text-sm tracking-[0.2em] uppercase border-b border-primary pb-1">
           Next Chapter

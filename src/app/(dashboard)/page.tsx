@@ -4,7 +4,6 @@ import ScrapbookCalendar from "@/components/features/ScrapbookCalendar";
 import UpcomingEventsWidget from "@/components/features/UpcomingEventsWidget";
 import EventComposer from "@/components/features/EventComposer";
 import { createClient } from "@/utils/supabase/server";
-// 1. Import your new counting function alongside the upcoming one
 import {
   getUpcomingGoogleEvents,
   getTotalGoogleEventsCount,
@@ -13,32 +12,41 @@ import {
 export default async function DashboardHome() {
   const supabase = await createClient();
 
-  // 2. Add the counting function to your Promise.all so everything loads simultaneously
+  // Get today's date in YYYY-MM-DD format to filter out past events
+  const today = new Date().toISOString().split("T")[0];
+
   const [
     { data: memories },
     googleEvents,
-    totalDatesCount, // This is your new true lifetime count!
+    totalDatesCount,
     { count: unreadCount },
-    { data: settings },
+    { data: nextEvent }, // 1. Fetching the closest upcoming event!
   ] = await Promise.all([
     supabase.from("memories").select("*"),
     getUpcomingGoogleEvents(),
-    getTotalGoogleEventsCount(), // Fetching the true count here
+    getTotalGoogleEventsCount(),
     supabase
       .from("mailbox_letters")
       .select("*", { count: "exact", head: true })
       .eq("is_read", false),
-    supabase.from("site_settings").select("*").eq("id", 1).single(),
+    // Query events: future dates only, sorted by nearest date, grab the first one
+    supabase
+      .from("events")
+      .select("*")
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .limit(1)
+      .single(),
   ]);
 
   return (
     <main className="w-full overflow-hidden flex flex-col pb-24 bg-background relative">
+      {/* 2. Pass the automated event data down. Add fallbacks if no events exist! */}
       <CountdownHero
-        targetDateString={settings?.countdown_date || "2026-12-25T19:00:00Z"}
-        title={settings?.countdown_title || "Our Next Adventure"}
+        targetDateString={nextEvent?.event_date || null}
+        title={nextEvent?.title || "Awaiting Next Adventure"}
       />
 
-      {/* 3. Pass the true lifetime count into the ribbon */}
       <StatRibbon
         totalDates={totalDatesCount}
         unreadLetters={unreadCount || 0}
