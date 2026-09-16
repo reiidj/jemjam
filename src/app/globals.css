@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  /* The --color- prefix tells Tailwind to build utility classes for these */
+  --color-background: #faf7f2;
+  --color-foreground: #1f1f1f;
+  --color-primary: #7b1113;
+  --color-secondary: #e8d7d8;
+  --color-border: #e5e5e5;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
