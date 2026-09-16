@@ -27,3 +27,47 @@ export async function addLetter(formData: FormData, contentHTML: string) {
 
   revalidatePath("/mailbox", "layout");
 }
+
+export async function deleteLetter(id: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("mailbox_letters")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting letter:", error);
+    throw new Error(error.message);
+  }
+
+  // Refresh both the mailbox and the dashboard (for the unread count)
+  revalidatePath("/mailbox");
+  revalidatePath("/", "layout");
+}
+
+export async function updateLetter(formData: FormData) {
+  const supabase = await createClient();
+
+  const id = formData.get("id") as string;
+  const title = formData.get("title") as string;
+  const content = formData.get("content") as string; // Adjust if we want rich text here
+  const deliver_at = formData.get("deliver_at") as string;
+
+  const { error } = await supabase
+    .from("mailbox_letters")
+    .update({
+      title,
+      content,
+      deliver_at,
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error updating letter:", error);
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/mailbox");
+  revalidatePath("/", "layout");
+}

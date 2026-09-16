@@ -1,17 +1,15 @@
-// 1. Swap to your secure server utility
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { Mail, Lock, MailOpen, PenLine } from "lucide-react";
 import MailboxComposer from "@/components/features/MailboxComposer";
+import LetterCardActions from "@/components/features/LetterCardActions";
 
 export default async function MailboxPage() {
-  // 2. Initialize it using await
   const supabase = await createClient();
 
-  // Fetch all letters using your secure client
   const { data: allLetters, error } = await supabase
     .from("mailbox_letters")
-    .select("id, title, sender_name, is_read, deliver_at, created_at")
+    .select("id, title, content, sender_name, is_read, deliver_at, created_at")
     .order("deliver_at", { ascending: true });
 
   if (error) {
@@ -20,7 +18,6 @@ export default async function MailboxPage() {
 
   const now = new Date();
 
-  // Sort into unlocked and locked based on the current server time
   const unlockedLetters =
     allLetters?.filter((letter) => new Date(letter.deliver_at) <= now) || [];
   const lockedLetters =
@@ -44,21 +41,28 @@ export default async function MailboxPage() {
             <MailOpen className="w-6 h-6 text-primary" /> Available to Read
           </h2>
           <div className="space-y-4">
-            {unlockedLetters.length === 0 ? (
-              <p className="font-serif text-foreground/50 italic">
-                No open letters at the moment.
-              </p>
-            ) : (
-              unlockedLetters.map((letter) => (
+            {unlockedLetters.map((letter) => (
+              <div
+                key={letter.id}
+                className={`relative group block p-6 bg-background border transition-colors ${
+                  !letter.is_read
+                    ? "border-primary shadow-sm"
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                {/* 1. Actions sit here on top (z-10) so they are completely separated from the link! */}
+                <div className="relative z-10">
+                  <LetterCardActions letter={letter} />
+                </div>
+
+                {/* 2. An invisible link that stretches over the whole card underneath the buttons */}
                 <Link
                   href={`/mailbox/${letter.id}`}
-                  key={letter.id}
-                  className={`block p-6 bg-background border transition-colors group ${
-                    !letter.is_read
-                      ? "border-primary shadow-sm"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
+                  className="absolute inset-0 z-0"
+                />
+
+                {/* 3. The card content (pointer-events-none ensures clicks pass cleanly through to the link) */}
+                <div className="relative z-0 pointer-events-none pr-10">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-[10px] uppercase tracking-[0.2em] text-primary font-serif block">
                       Delivered:{" "}
@@ -71,7 +75,11 @@ export default async function MailboxPage() {
                     )}
                   </div>
                   <h3
-                    className={`font-serif text-xl group-hover:text-primary transition-colors ${!letter.is_read ? "text-foreground font-bold" : "text-foreground"}`}
+                    className={`font-serif text-xl transition-colors ${
+                      !letter.is_read
+                        ? "text-foreground font-bold group-hover:text-primary"
+                        : "text-foreground group-hover:text-primary"
+                    }`}
                   >
                     {letter.title}
                   </h3>
@@ -83,9 +91,9 @@ export default async function MailboxPage() {
                       </span>
                     </div>
                   )}
-                </Link>
-              ))
-            )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -103,9 +111,11 @@ export default async function MailboxPage() {
               lockedLetters.map((letter) => (
                 <div
                   key={letter.id}
-                  className="p-6 bg-secondary/5 border border-border/50 cursor-not-allowed flex items-center justify-between"
+                  className="relative group p-6 bg-secondary/5 border border-border/50 cursor-not-allowed flex items-center justify-between"
                 >
-                  <div>
+                  <LetterCardActions letter={letter} />
+
+                  <div className="pr-10">
                     <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif block mb-1">
                       Unlocks:{" "}
                       {new Date(letter.deliver_at).toLocaleDateString()}
