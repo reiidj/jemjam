@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { PenLine, X } from "lucide-react";
+import { updateCountdownSettings } from "@/lib/actions/settings";
 
-// We will make this dynamically pull from a database settings table next!
-const TARGET_DATE = new Date("2026-12-25T19:00:00").getTime();
 const MOCK_IMAGES = ["mock-1", "mock-2", "mock-3"];
 
-export default function CountdownHero() {
-  // 1. Added seconds to the state
+interface CountdownHeroProps {
+  targetDateString: string;
+  title: string;
+}
+
+export default function CountdownHero({
+  targetDateString,
+  title,
+}: CountdownHeroProps) {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -17,13 +24,19 @@ export default function CountdownHero() {
   });
   const [cards, setCards] = useState(MOCK_IMAGES);
 
+  // UI States for editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [isPending, setIsPending] = useState(false);
+
   useEffect(() => {
+    // Parse the date string passed from the server into a usable timestamp
+    const targetDate = new Date(targetDateString).getTime();
+
     const interval = setInterval(() => {
       const now = new Date().getTime();
-      const difference = TARGET_DATE - now;
+      const difference = targetDate - now;
 
       if (difference > 0) {
-        // 2. Added the seconds math calculation
         setTimeLeft({
           days: Math.floor(difference / (1000 * 60 * 60 * 24)),
           hours: Math.floor(
@@ -32,10 +45,14 @@ export default function CountdownHero() {
           minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
           seconds: Math.floor((difference % (1000 * 60)) / 1000),
         });
+      } else {
+        // If the date has passed, show all zeros
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
       }
-    }, 1000); // Ticks exactly every 1 second
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [targetDateString]);
 
   const handleSwipe = () => {
     setCards((prev) => {
@@ -46,19 +63,104 @@ export default function CountdownHero() {
     });
   };
 
+  const handleUpdate = async (formData: FormData) => {
+    setIsPending(true);
+    await updateCountdownSettings(formData);
+    setIsEditing(false);
+    setIsPending(false);
+  };
+
+  // Convert the ISO string to a datetime-local format for the HTML input
+  const defaultDateValue = new Date(targetDateString)
+    .toISOString()
+    .slice(0, 16);
+
   return (
-    <section className="flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto py-12 lg:py-20 px-6 lg:px-8 gap-12 lg:gap-16 bg-background">
-      <div className="flex-1 space-y-6 z-10 text-center lg:text-left">
+    <section className="relative flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto py-12 lg:py-20 px-6 lg:px-8 gap-12 lg:gap-16 bg-background">
+      {/* Small Edit Button in the top left */}
+      <button
+        onClick={() => setIsEditing(true)}
+        className="absolute top-4 left-6 lg:left-8 text-foreground/30 hover:text-primary transition-colors flex items-center gap-2"
+      >
+        <PenLine className="w-4 h-4" />
+        <span className="text-[10px] uppercase tracking-widest font-serif">
+          Edit Countdown
+        </span>
+      </button>
+
+      {/* Editing Modal/Overlay */}
+      {isEditing && (
+        <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-6">
+          <form
+            action={handleUpdate}
+            className="bg-[#FFFDF9] border border-border p-8 md:p-12 shadow-2xl max-w-md w-full relative"
+          >
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              className="absolute top-4 right-4 text-foreground/50 hover:text-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="font-serif text-2xl text-foreground mb-6">
+              Update Destination
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif mb-2">
+                  Adventure Title
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  defaultValue={title}
+                  required
+                  className="w-full bg-transparent border-b border-border/50 pb-2 font-serif text-lg text-foreground focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif mb-2">
+                  Target Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  name="date"
+                  defaultValue={defaultDateValue}
+                  required
+                  className="w-full bg-transparent border-b border-border/50 pb-2 font-serif text-lg text-foreground focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="w-full py-4 bg-background border border-primary text-primary hover:bg-primary hover:text-background transition-colors font-serif uppercase tracking-[0.2em] text-xs disabled:opacity-50"
+              >
+                {isPending ? "Updating..." : "Save Changes"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="flex-1 space-y-6 z-10 text-center lg:text-left pt-6 lg:pt-0">
         <span className="text-primary font-serif text-xs lg:text-sm tracking-[0.2em] uppercase border-b border-primary pb-1">
           Next Chapter
         </span>
         <h1 className="font-serif text-5xl md:text-7xl text-foreground leading-tight">
-          Our Next <br className="hidden lg:block" />
-          <span className="italic text-primary">Adventure</span>
+          {title.split(" ").map((word, i, arr) =>
+            i === arr.length - 1 ? (
+              <span key={i} className="italic text-primary block lg:inline">
+                {" "}
+                {word}
+              </span>
+            ) : (
+              <span key={i}>{word} </span>
+            ),
+          )}
         </h1>
 
         <div className="flex justify-center lg:justify-start gap-6 mt-10 pt-8 border-t border-foreground/10">
-          {/* 3. Added the Seconds block and padStart to keep the layout steady */}
           {[
             { label: "Days", value: timeLeft.days },
             { label: "Hours", value: String(timeLeft.hours).padStart(2, "0") },
@@ -77,7 +179,6 @@ export default function CountdownHero() {
         </div>
       </div>
 
-      {/* Your beautiful swipeable gallery remains EXACTLY as it was! */}
       <div className="relative w-[300px] h-[400px] md:w-[400px] md:h-[520px] flex items-center justify-center perspective-[1000px] mt-8 lg:mt-0">
         <AnimatePresence>
           {cards.map((id, index) => {

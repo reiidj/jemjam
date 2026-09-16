@@ -4,32 +4,43 @@ import ScrapbookCalendar from "@/components/features/ScrapbookCalendar";
 import UpcomingEventsWidget from "@/components/features/UpcomingEventsWidget";
 import EventComposer from "@/components/features/EventComposer";
 import { createClient } from "@/utils/supabase/server";
-import { getUpcomingGoogleEvents } from "@/lib/calendar";
+// 1. Import your new counting function alongside the upcoming one
+import {
+  getUpcomingGoogleEvents,
+  getTotalGoogleEventsCount,
+} from "@/lib/calendar";
 
 export default async function DashboardHome() {
   const supabase = await createClient();
 
-  // 1. Fetch memories, google events, AND efficiently count unread letters!
+  // 2. Add the counting function to your Promise.all so everything loads simultaneously
   const [
     { data: memories },
     googleEvents,
-    { count: unreadCount }, // Using Supabase's built-in count feature
+    totalDatesCount, // This is your new true lifetime count!
+    { count: unreadCount },
+    { data: settings },
   ] = await Promise.all([
     supabase.from("memories").select("*"),
     getUpcomingGoogleEvents(),
+    getTotalGoogleEventsCount(), // Fetching the true count here
     supabase
       .from("mailbox_letters")
       .select("*", { count: "exact", head: true })
       .eq("is_read", false),
+    supabase.from("site_settings").select("*").eq("id", 1).single(),
   ]);
 
   return (
     <main className="w-full overflow-hidden flex flex-col pb-24 bg-background relative">
-      <CountdownHero />
+      <CountdownHero
+        targetDateString={settings?.countdown_date || "2026-12-25T19:00:00Z"}
+        title={settings?.countdown_title || "Our Next Adventure"}
+      />
 
-      {/* 2. Pass the data right into the ribbon */}
+      {/* 3. Pass the true lifetime count into the ribbon */}
       <StatRibbon
-        totalDates={googleEvents?.length || 0}
+        totalDates={totalDatesCount}
         unreadLetters={unreadCount || 0}
       />
 

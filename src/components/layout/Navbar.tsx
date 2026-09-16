@@ -47,6 +47,12 @@ export default function Navbar() {
           >
             Mailbox
           </Link>
+          <Link
+            href="/archive"
+            className="hover:text-primary transition-colors"
+          >
+            Archive
+          </Link>
         </div>
 
         <div className="hidden md:block">
@@ -101,6 +107,13 @@ export default function Navbar() {
                 className="hover:text-primary transition-colors"
               >
                 Mailbox
+              </Link>
+              <Link
+                href="/mailbox"
+                onClick={() => setIsOpen(false)}
+                className="hover:text-primary transition-colors"
+              >
+                Archive
               </Link>
 
               <div className="pt-6 mt-2 border-t border-border w-1/2 mx-auto">

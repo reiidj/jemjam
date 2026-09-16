@@ -2,6 +2,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { Calendar, MapPin, Clock } from "lucide-react";
 import EventComposer from "@/components/features/EventComposer";
+import EventCardActions from "@/components/features/EventCardActions";
 
 export default async function EventsPage() {
   // 2. We use 'await' because Next.js 15 handles cookies asynchronously
@@ -50,8 +51,11 @@ export default async function EventsPage() {
               upcomingEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="p-6 bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer"
+                  className="relative p-6 bg-background border border-border hover:border-primary/50 transition-colors group cursor-pointer"
                 >
+                  {/* edit/delete icons that appear on hover */}
+                  <EventCardActions event={event} />
+
                   <span className="text-[10px] uppercase tracking-[0.2em] text-primary font-serif block mb-2">
                     {new Date(event.event_date).toLocaleDateString("en-US", {
                       month: "long",
@@ -91,8 +95,12 @@ export default async function EventsPage() {
             {pastEvents.map((event) => (
               <div
                 key={event.id}
-                className="p-6 bg-secondary/5 border border-border/50"
+                // ADD "group" RIGHT HERE 👇
+                className="relative group p-6 bg-secondary/5 border border-border/50"
               >
+                {/* edit/delete icons that appear on hover */}
+                <EventCardActions event={event} />
+
                 <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif block mb-2">
                   {new Date(event.event_date).toLocaleDateString("en-US", {
                     month: "long",
