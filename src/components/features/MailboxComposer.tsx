@@ -17,10 +17,16 @@ export default function MailboxComposer() {
 
     try {
       const formData = new FormData(e.currentTarget);
+
+      const rawDate = formData.get("deliver_at") as string;
+      if (rawDate) {
+        formData.set("deliver_at", new Date(rawDate).toISOString());
+      }
+
       await addLetter(formData, contentHTML);
 
       setIsOpen(false);
-      setContentHTML(""); // Reset after successful submission
+      setContentHTML("");
     } catch (error) {
       console.error("Failed to add letter:", error);
     } finally {

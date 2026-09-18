@@ -4,11 +4,10 @@ import { Trash2, Pencil, X, AlertTriangle } from "lucide-react";
 import { deleteLetter, updateLetter } from "@/lib/actions/mailbox";
 import { useState } from "react";
 
-// 1. FIXED: Swapped open_date for deliver_at
 interface Letter {
   id: string;
   title: string;
-  content: string;
+  content?: string;
   deliver_at: string;
 }
 
@@ -21,7 +20,10 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
-  // 2. FIXED: Grabbing the date from deliver_at safely
+  // Check if letter is currently time-locked
+  const isLocked = new Date(letter.deliver_at) > new Date();
+
+  // Safely format date for the edit modal (only used if unlocked)
   const formattedDate = letter.deliver_at
     ? letter.deliver_at.split("T")[0]
     : "";
@@ -52,7 +54,7 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
 
   return (
     <>
-      {/* Trigger Buttons */}
+      {/* Action Buttons */}
       <div
         className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 bg-background/90 backdrop-blur-sm p-1.5 border border-border z-10"
         onClick={(e) => {
@@ -60,20 +62,25 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
           e.stopPropagation();
         }}
       >
+        {/* Only show Edit if the letter is unlocked */}
+        {!isLocked && (
+          <button
+            title="Edit Letter"
+            type="button"
+            className="p-1.5 text-foreground/60 hover:text-primary transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowEditModal(true);
+            }}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Delete button is always available */}
         <button
-          title="Edit Letter"
-          type="button"
-          className="p-1.5 text-foreground/60 hover:text-primary transition-colors"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setShowEditModal(true);
-          }}
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        <button
-          title="Delete Letter"
+          title={isLocked ? "Discard Sealed Envelope" : "Delete Letter"}
           type="button"
           className="p-1.5 text-foreground/60 hover:text-red-500 transition-colors"
           onClick={(e) => {
@@ -86,7 +93,7 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
         </button>
       </div>
 
-      {/* Delete Modal */}
+      {/* Delete / Burn Modal */}
       {showDeleteModal && (
         <div
           className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 cursor-default"
@@ -95,11 +102,12 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
           <div className="bg-[#FFFDF9] border border-border p-8 shadow-2xl max-w-sm w-full text-center">
             <AlertTriangle className="w-12 h-12 text-red-500/80 mx-auto mb-4" />
             <h2 className="font-serif text-2xl text-foreground mb-2">
-              Burn Letter?
+              {isLocked ? "Discard Envelope?" : "Burn Letter?"}
             </h2>
             <p className="text-foreground/60 font-serif text-sm mb-8">
-              This will permanently delete "{letter.title}". This cannot be
-              undone.
+              {isLocked
+                ? `This sealed letter will be discarded before delivery. This cannot be undone.`
+                : `This will permanently delete "${letter.title}". This cannot be undone.`}
             </p>
             <div className="flex gap-4">
               <button
@@ -116,15 +124,15 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
                 disabled={isPending}
                 className="flex-1 py-3 bg-red-500/10 border border-red-500 text-red-600 hover:bg-red-500 hover:text-white transition-colors font-serif uppercase tracking-widest text-[10px] disabled:opacity-50"
               >
-                {isPending ? "Burning..." : "Burn It"}
+                {isPending ? "Discarding..." : isLocked ? "Discard" : "Burn It"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Form Modal */}
-      {showEditModal && (
+      {/* Edit Form Modal (Rendered only for unlocked letters) */}
+      {!isLocked && showEditModal && (
         <div
           className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex items-center justify-center p-6 cursor-default"
           onClick={(e) => e.stopPropagation()}
@@ -160,10 +168,9 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
                 />
               </div>
 
-              {/* 3. FIXED: Name is deliver_at and it grabs the correct formattedDate */}
               <div>
                 <label className="block text-[10px] uppercase tracking-[0.2em] text-foreground/50 font-serif mb-2">
-                  Date to Open
+                  Delivery Date
                 </label>
                 <input
                   type="date"
@@ -180,18 +187,19 @@ export default function LetterCardActions({ letter }: LetterCardActionsProps) {
                 </label>
                 <textarea
                   name="content"
-                  defaultValue={letter.content}
+                  defaultValue={letter.content || ""}
                   required
                   rows={5}
                   className="w-full bg-transparent border border-border/50 p-3 font-serif text-base text-foreground focus:outline-none focus:border-primary transition-colors resize-none"
                 />
               </div>
+
               <button
                 type="submit"
                 disabled={isPending}
                 className="w-full py-4 mt-4 bg-background border border-primary text-primary hover:bg-primary hover:text-background transition-colors font-serif uppercase tracking-[0.2em] text-xs disabled:opacity-50"
               >
-                {isPending ? "Sealing..." : "Seal Changes"}
+                {isPending ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>

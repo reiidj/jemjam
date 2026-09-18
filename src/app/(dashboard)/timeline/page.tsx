@@ -1,28 +1,42 @@
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
+import { getAllGoogleEvents } from "@/lib/calendar";
 import MemoryComposer from "@/components/features/MemoryComposer";
 
 export default async function TimelineYearView() {
   // 1. Initialize your secure master key
   const supabase = await createClient();
 
-  // 2. Fetch just the dates of all memories (we only need the dates to count the years)
-  const { data: memories, error } = await supabase
-    .from("memories")
-    .select("memory_date")
-    .order("memory_date", { ascending: true }); // Oldest first so Chapter I is always the first year
+  // 2. Fetch Supabase memories AND all Google Calendar events concurrently
+  const [{ data: memories, error }, googleEvents] = await Promise.all([
+    supabase
+      .from("memories")
+      .select("memory_date")
+      .order("memory_date", { ascending: true }),
+    getAllGoogleEvents(),
+  ]);
 
   if (error) {
     console.error("Error fetching memories for timeline:", error);
   }
 
-  // 3. Dynamically group and count memories by year
-  const yearCounts: Record<string, number> = {};
+  // 3. Dynamically group unique dates by year using a Set
+  const uniqueDatesByYear: Record<string, Set<string>> = {};
+
+  // Add Supabase Memories
   memories?.forEach((memory) => {
-    // Extract just the YYYY part of the date string
     const year = memory.memory_date.substring(0, 4);
-    yearCounts[year] = (yearCounts[year] || 0) + 1;
+    if (!uniqueDatesByYear[year]) uniqueDatesByYear[year] = new Set();
+    uniqueDatesByYear[year].add(memory.memory_date);
+  });
+
+  // Add Google Calendar Events
+  googleEvents?.forEach((event) => {
+    const dateString = event.date.toISOString().split("T")[0]; // YYYY-MM-DD
+    const year = dateString.substring(0, 4);
+    if (!uniqueDatesByYear[year]) uniqueDatesByYear[year] = new Set();
+    uniqueDatesByYear[year].add(dateString);
   });
 
   const romanNumerals = [
@@ -39,11 +53,11 @@ export default async function TimelineYearView() {
   ];
 
   // 4. Transform our counts into the format your UI expects
-  const activeYears = Object.keys(yearCounts)
+  const activeYears = Object.keys(uniqueDatesByYear)
     .sort((a, b) => parseInt(a) - parseInt(b)) // Ensure chronological order
     .map((year, index) => ({
       year,
-      memories: yearCounts[year],
+      memories: uniqueDatesByYear[year].size,
       cover: `Chapter ${romanNumerals[index] || index + 1}`,
     }));
 

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendLetterSealedEmail } from "@/lib/email";
 
 export async function addLetter(formData: FormData, contentHTML: string) {
   const supabase = await createClient();
@@ -25,6 +26,21 @@ export async function addLetter(formData: FormData, contentHTML: string) {
     throw new Error(error.message);
   }
 
+  // Notify the recipient immediately that a letter has been sealed for them.
+  // Failure to send shouldn't roll back the letter, so this is fire-and-forget with logging.
+  if (recipient_email) {
+    try {
+      await sendLetterSealedEmail({
+        to: recipient_email,
+        title,
+        sender_name,
+        deliver_at,
+      });
+    } catch (emailError) {
+      console.error("Failed to send letter-sealed email:", emailError);
+    }
+  }
+
   revalidatePath("/mailbox", "layout");
 }
 
@@ -41,7 +57,6 @@ export async function deleteLetter(id: string) {
     throw new Error(error.message);
   }
 
-  // Refresh both the mailbox and the dashboard (for the unread count)
   revalidatePath("/mailbox");
   revalidatePath("/", "layout");
 }
@@ -51,7 +66,7 @@ export async function updateLetter(formData: FormData) {
 
   const id = formData.get("id") as string;
   const title = formData.get("title") as string;
-  const content = formData.get("content") as string; // Adjust if we want rich text here
+  const content = formData.get("content") as string;
   const deliver_at = formData.get("deliver_at") as string;
 
   const { error } = await supabase

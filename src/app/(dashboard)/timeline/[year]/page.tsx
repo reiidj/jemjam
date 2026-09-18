@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-// 1. Swapped to your secure server utility
 import { createClient } from "@/utils/supabase/server";
+import { getAllGoogleEvents } from "@/lib/calendar";
 import MemoryComposer from "@/components/features/MemoryComposer";
 
 const MONTHS = [
@@ -25,29 +25,39 @@ export default async function TimelineYearView({
   params: Promise<{ year: string }>;
 }) {
   const { year } = await params;
-
-  // 2. Initialize it using await
   const supabase = await createClient();
 
-  // Fetch all memory dates for this specific year
-  const { data: memories, error } = await supabase
-    .from("memories")
-    .select("memory_date")
-    .gte("memory_date", `${year}-01-01`)
-    .lte("memory_date", `${year}-12-31`);
+  // Fetch Supabase memories AND Google Calendar events concurrently
+  const [{ data: memories, error }, allGoogleEvents] = await Promise.all([
+    supabase
+      .from("memories")
+      .select("memory_date")
+      .gte("memory_date", `${year}-01-01`)
+      .lte("memory_date", `${year}-12-31`),
+    getAllGoogleEvents(),
+  ]);
 
   if (error) {
     console.error("Error fetching year memories:", error);
   }
 
-  // Extract unique, active months from the fetched dates
-  const activeMonths = new Set(
-    memories?.map((memory) => {
-      // memory_date is 'YYYY-MM-DD'. Split it and parse the month (index 1)
-      const monthIndex = parseInt(memory.memory_date.split("-")[1], 10) - 1;
-      return MONTHS[monthIndex];
-    }) || [],
-  );
+  // Use a Set to store active month indexes (0-11) to prevent duplicates
+  const activeMonthIndexes = new Set<number>();
+
+  // 1. Add Supabase Memories
+  memories?.forEach((memory) => {
+    // memory_date is 'YYYY-MM-DD'. Split it and parse the month (index 1)
+    const monthIndex = parseInt(memory.memory_date.split("-")[1], 10) - 1;
+    activeMonthIndexes.add(monthIndex);
+  });
+
+  // 2. Add Google Calendar Events
+  allGoogleEvents?.forEach((event) => {
+    // Only count events that match the current year being viewed
+    if (event.date.getFullYear().toString() === year) {
+      activeMonthIndexes.add(event.date.getMonth());
+    }
+  });
 
   return (
     <div className="w-full max-w-6xl mx-auto px-6 lg:px-8 py-12 lg:py-20 relative">
@@ -66,9 +76,9 @@ export default async function TimelineYearView({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {MONTHS.map((month) => {
-          // Check against the live database results
-          const isActive = activeMonths.has(month);
+        {MONTHS.map((month, index) => {
+          // Check if this month's index exists in our merged Set
+          const isActive = activeMonthIndexes.has(index);
 
           return isActive ? (
             <Link
