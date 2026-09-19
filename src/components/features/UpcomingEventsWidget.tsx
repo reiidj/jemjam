@@ -2,6 +2,7 @@ import { MapPin } from "lucide-react";
 import Link from "next/link";
 // 1. Swap to your secure server utility
 import { createClient } from "@/utils/supabase/server";
+import EventSoonBell from "./EventSoonBell";
 
 export default async function UpcomingEventsWidget() {
   // 2. Initialize it using await
@@ -70,6 +71,12 @@ export default async function UpcomingEventsWidget() {
                     </div>
                   )}
                 </div>
+
+                {/* Bell only renders if the event is less than 1 day away */}
+                <EventSoonBell
+                  eventDate={event.event_date}
+                  className="ml-auto self-center"
+                />
               </Link>
             );
           })

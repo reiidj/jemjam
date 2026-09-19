@@ -72,7 +72,7 @@ export default async function DashboardHome() {
       .createSignedUrls(coverImages, 3600);
 
     signedCoversData?.forEach((file) => {
-      if (file.signedUrl) {
+      if (file.signedUrl && file.path) {
         signedCoverUrls[file.path] = file.signedUrl;
       }
     });
@@ -118,7 +118,6 @@ export default async function DashboardHome() {
             <ScrapbookCalendar
               memories={memories || []}
               googleEvents={googleEvents}
-              hideComposer={true}
             />
           </div>
 

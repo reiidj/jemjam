@@ -8,6 +8,23 @@ export interface GoogleEvent {
   location?: string;
 }
 
+/*
+ * node-ical types text fields (summary, description, location) as either a
+ * plain string OR an object like { val: "text", params: { LANGUAGE: "en" } }.
+ * The object form happens when the calendar line carries parameters, e.g.
+ * `SUMMARY;LANGUAGE=en:Dinner`. This normalizes both shapes to a string.
+ */
+function toText(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  if (value && typeof value === "object" && "val" in value) {
+    const inner = (value as { val: unknown }).val;
+    return typeof inner === "string" ? inner : "";
+  }
+
+  return "";
+}
+
 // 1. Get upcoming events (with 30-day past threshold for the calendar view)
 export async function getUpcomingGoogleEvents(): Promise<GoogleEvent[]> {
   const icalUrl = process.env.GOOGLE_ICAL_URL;
@@ -34,10 +51,10 @@ export async function getUpcomingGoogleEvents(): Promise<GoogleEvent[]> {
           if (eventDate >= thresholdDate) {
             parsedEvents.push({
               id: vEvent.uid || crypto.randomUUID(),
-              title: vEvent.summary || "Untitled Event",
+              title: toText(vEvent.summary) || "Untitled Event",
               date: eventDate,
-              description: vEvent.description || "",
-              location: vEvent.location || "",
+              description: toText(vEvent.description),
+              location: toText(vEvent.location),
             });
           }
         }
@@ -92,10 +109,10 @@ export async function getAllGoogleEvents(): Promise<GoogleEvent[]> {
         if (vEvent.start) {
           parsedEvents.push({
             id: vEvent.uid || crypto.randomUUID(),
-            title: vEvent.summary || "Untitled Event",
+            title: toText(vEvent.summary) || "Untitled Event",
             date: new Date(vEvent.start as Date),
-            description: vEvent.description || "",
-            location: vEvent.location || "",
+            description: toText(vEvent.description),
+            location: toText(vEvent.location),
           });
         }
       }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, MapPin, AlignLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, MapPin, AlignLeft, Bell } from "lucide-react";
 import EventCardActions from "./EventCardActions";
 
 interface Event {
@@ -17,8 +17,54 @@ interface EventCardProps {
   isPast?: boolean; // We will use this to style the past events slightly faded!
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/*
+ * True when the event hasn't finished yet and starts less than 24 hours
+ * from now.
+ *
+ * - Date-only values ("2026-09-20") are treated as an all-day event in the
+ *   viewer's local time, so the bell shows the day before and stays on
+ *   through the day itself.
+ * - Values with a time ("2026-09-20T18:00:00Z") use the exact moment.
+ */
+function isLessThanOneDayAway(eventDate: string): boolean {
+  const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(eventDate);
+
+  let start: Date;
+  let end: Date;
+
+  if (isDateOnly) {
+    const [y, m, d] = eventDate.split("-").map(Number);
+    start = new Date(y, m - 1, d);
+    end = new Date(y, m - 1, d + 1);
+  } else {
+    start = new Date(eventDate);
+    end = start;
+  }
+
+  const now = Date.now();
+  return now < end.getTime() && start.getTime() - now < DAY_MS;
+}
+
 export default function EventCard({ event, isPast }: EventCardProps) {
   const [showViewModal, setShowViewModal] = useState(false);
+  const [isSoon, setIsSoon] = useState(false);
+
+  /*
+   * Calculated after mount (not during render) so the server and browser
+   * can't disagree about "now". Re-checked every minute so the bell
+   * appears or disappears without a page refresh.
+   */
+  useEffect(() => {
+    const check = () => setIsSoon(isLessThanOneDayAway(event.event_date));
+    check();
+
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  }, [event.event_date]);
+
+  const showBell = isSoon && !isPast;
 
   const formattedDate = new Date(event.event_date).toLocaleDateString("en-US", {
     month: "long",
@@ -40,11 +86,27 @@ export default function EventCard({ event, isPast }: EventCardProps) {
         {/* The edit/delete icons (they already stop clicks from opening the view modal!) */}
         <EventCardActions event={event} />
 
-        <span
-          className={`text-[10px] uppercase tracking-[0.2em] font-serif block mb-2 ${isPast ? "text-foreground/50" : "text-primary"}`}
-        >
-          {formattedDate}
-        </span>
+        <div className="flex items-center gap-2.5 mb-2">
+          <span
+            className={`text-[10px] uppercase tracking-[0.2em] font-serif block ${isPast ? "text-foreground/50" : "text-primary"}`}
+          >
+            {formattedDate}
+          </span>
+
+          {/* Notification bell: event is less than 1 day away */}
+          {showBell && (
+            <span
+              className="relative inline-flex text-primary"
+              role="img"
+              aria-label="Coming up in less than a day"
+              title="Coming up in less than a day"
+            >
+              <Bell className="w-4 h-4 fill-current" />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
+            </span>
+          )}
+        </div>
+
         <h3 className="font-serif text-2xl text-foreground mb-2 group-hover:text-primary transition-colors">
           {event.title}
         </h3>
