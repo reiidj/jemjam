@@ -5,10 +5,7 @@ import UpcomingEventsWidget from "@/components/features/UpcomingEventsWidget";
 import EventComposer from "@/components/features/EventComposer";
 import RecentMemories from "@/components/features/RecentMemories"; // Import the new widget
 import { createClient } from "@/utils/supabase/server";
-import {
-  getUpcomingGoogleEvents,
-  getTotalGoogleEventsCount,
-} from "@/lib/calendar";
+import { getAllGoogleEvents, getTotalGoogleEventsCount } from "@/lib/calendar";
 
 export default async function DashboardHome() {
   const supabase = await createClient();
@@ -35,7 +32,7 @@ export default async function DashboardHome() {
     { data: nextEvent },
   ] = await Promise.all([
     supabase.from("memories").select("*"),
-    getUpcomingGoogleEvents(),
+    getAllGoogleEvents(),
     getTotalGoogleEventsCount(),
     supabase
       .from("mailbox_letters")
