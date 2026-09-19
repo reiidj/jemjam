@@ -4,6 +4,8 @@ import ScrapbookCalendar from "@/components/features/ScrapbookCalendar";
 import UpcomingEventsWidget from "@/components/features/UpcomingEventsWidget";
 import EventComposer from "@/components/features/EventComposer";
 import { createClient } from "@/utils/supabase/server";
+//import RecentMemories from "@/components/features/RecentMemories"; to be implemented
+
 import {
   getUpcomingGoogleEvents,
   getTotalGoogleEventsCount,
@@ -14,6 +16,20 @@ export default async function DashboardHome() {
 
   // Get today's date in YYYY-MM-DD format to filter out past events
   const today = new Date().toISOString().split("T")[0];
+
+  // 1. Request secure 1-hour links for the exact files in your private bucket
+  const { data: signedUrlsData } = await supabase.storage
+    .from("jemjam-vault")
+    .createSignedUrls(
+      ["hero-photo-1.jpg", "hero-photo-2.jpg", "hero-photo-3.jpg"],
+      3600,
+    );
+
+  // 2. Extract just the URL strings, ignoring any potential errors
+  const secureImages =
+    signedUrlsData
+      ?.map((file) => file.signedUrl)
+      .filter((url): url is string => !!url) || [];
 
   const [
     { data: memories },
@@ -45,6 +61,7 @@ export default async function DashboardHome() {
       <CountdownHero
         targetDateString={nextEvent?.event_date || null}
         title={nextEvent?.title || "Awaiting Next Adventure"}
+        secureImages={secureImages}
       />
 
       <StatRibbon

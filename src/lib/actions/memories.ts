@@ -28,11 +28,8 @@ export async function addMemory(formData: FormData) {
         continue;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from("jemjam-vault")
-        .getPublicUrl(fileName);
-
-      newImageUrls.push(publicUrlData.publicUrl);
+      // ONLY push the raw filename. Do not request a public URL.
+      newImageUrls.push(fileName);
     }
   }
 

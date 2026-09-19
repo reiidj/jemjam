@@ -51,6 +51,20 @@ export default async function DetailedMemoryView({
     console.error("Error fetching specific memory:", error);
   }
 
+  // 1. Generate Secure URLs for the private gallery
+  let secureGalleryUrls: string[] = [];
+
+  if (memory?.images && memory.images.length > 0) {
+    const { data: signedUrlsData } = await supabase.storage
+      .from("jemjam-vault")
+      .createSignedUrls(memory.images, 3600); // 1-hour expiration
+
+    secureGalleryUrls =
+      signedUrlsData
+        ?.map((file) => file.signedUrl)
+        .filter((url): url is string => !!url) || [];
+  }
+
   // Look for a matching Google Calendar event on this exact date
   const matchingGoogleEvent = allGoogleEvents.find((event) => {
     const {
@@ -103,7 +117,7 @@ export default async function DetailedMemoryView({
           />
 
           {/* Live Supabase Gallery */}
-          {memory.images && memory.images.length > 0 && (
+          {secureGalleryUrls.length > 0 && (
             <div className="mb-16">
               <div className="flex items-center justify-center gap-4 mb-8">
                 <div className="h-px bg-border flex-1" />
@@ -114,7 +128,8 @@ export default async function DetailedMemoryView({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {memory.images.map((url: string, index: number) => (
+                {/* 2. Loop over your newly generated secure URLs instead of memory.images */}
+                {secureGalleryUrls.map((url: string, index: number) => (
                   <div
                     key={index}
                     className={`bg-background border border-border p-3 shadow-md transform transition-transform duration-500 hover:rotate-0 hover:z-10 hover:scale-105 ${
