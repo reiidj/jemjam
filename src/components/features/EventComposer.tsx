@@ -30,17 +30,15 @@ export default function EventComposer() {
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Block-level Action Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-8 right-8 bg-background border border-border p-4 shadow-lg hover:border-primary hover:-translate-y-1 transition-all group z-30"
+        className="w-full group flex items-center justify-center gap-3 p-6 border border-dashed border-border bg-secondary/5 hover:border-primary/50 hover:bg-secondary/10 transition-colors cursor-pointer"
       >
-        <div className="flex items-center gap-3">
-          <CalendarPlus className="w-5 h-5 text-foreground/50 group-hover:text-primary transition-colors" />
-          <span className="font-serif uppercase tracking-[0.2em] text-xs">
-            Add Plan
-          </span>
-        </div>
+        <CalendarPlus className="w-5 h-5 text-foreground/50 group-hover:text-primary transition-colors" />
+        <span className="font-serif uppercase tracking-[0.2em] text-xs text-foreground/60 group-hover:text-primary transition-colors">
+          Add an Event
+        </span>
       </button>
 
       {/* Slide-Over Panel */}
