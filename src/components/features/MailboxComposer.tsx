@@ -39,7 +39,7 @@ export default function MailboxComposer() {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-8 right-8 bg-background border border-border p-4 shadow-lg hover:border-primary hover:-translate-y-1 transition-all group z-30"
+        className="fixed bottom-24 right-6 bg-background border border-border p-4 shadow-lg hover:border-primary hover:-translate-y-1 transition-all group z-30"
       >
         <div className="flex items-center gap-3">
           <MailPlus className="w-5 h-5 text-foreground/50 group-hover:text-primary transition-colors" />

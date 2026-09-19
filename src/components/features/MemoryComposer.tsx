@@ -44,7 +44,7 @@ export default function MemoryComposer({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-primary text-background rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-40"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-background rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-40"
       >
         <Plus className="w-6 h-6" />
       </button>

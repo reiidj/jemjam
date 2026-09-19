@@ -72,9 +72,12 @@ export default function CountdownHero({
   return (
     <section className="relative flex flex-col lg:flex-row items-center justify-between w-full max-w-6xl mx-auto py-12 lg:py-20 px-6 lg:px-8 gap-12 lg:gap-16 bg-background">
       <div className="flex-1 space-y-6 z-10 text-center lg:text-left pt-6 lg:pt-0">
-        <span className="text-primary font-serif text-xs lg:text-sm tracking-[0.2em] uppercase border-b border-primary pb-1">
-          Next Chapter
-        </span>
+        <div className="flex items-center justify-center lg:justify-start gap-4 mb-6">
+          <span className="font-serif italic text-primary text-3xl">
+            Next Chapter
+          </span>
+          <div className="h-px bg-foreground/20 flex-1 max-w-[120px] hidden md:block" />
+        </div>
         <h1 className="font-serif text-5xl md:text-7xl text-foreground leading-tight">
           {title.split(" ").map((word, i, arr) =>
             i === arr.length - 1 ? (
